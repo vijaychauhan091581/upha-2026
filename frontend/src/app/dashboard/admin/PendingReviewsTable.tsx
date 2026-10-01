@@ -14,9 +14,15 @@ import {
   Sparkles,
   Users,
   Shield,
-  Trash2,
   ChevronLeft,
   ChevronRight,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  Trash2,
+  MoreVertical,
+  MoreHorizontal,
+  Eye,
 } from "lucide-react";
 import {
   listPlayers,
@@ -37,6 +43,7 @@ import {
   DistrictData,
 } from "@/lib/api";
 import EditRegistrationModal from "./EditRegistrationModal";
+import CsvImportExportModal, { exportApplicantsToCsv } from "./CsvImportExportModal";
 
 type CategoryFilter = "ALL" | "PLAYERS" | "REFEREES" | "ACADEMIES" | "DISTRICTS" | "COACHES";
 type StatusFilter = "ALL" | "PENDING" | "APPROVED";
@@ -108,6 +115,25 @@ export default function PendingReviewsTable() {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // CSV Import / Export Modal
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvInitialTab, setCsvInitialTab] = useState<"export" | "import">("export");
+
+  // Action Menu Dropdown State (Three Dots)
+  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
+
+  // Close Action Menu when clicking anywhere outside
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".action-menu-dropdown-wrapper")) {
+        setOpenMenuKey(null);
+      }
+    };
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -408,6 +434,33 @@ export default function PendingReviewsTable() {
             </p>
           </div>
 
+          {/* CSV Tools Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setCsvInitialTab("export");
+                setIsCsvModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-bold px-3.5 py-2 rounded-lg text-xs shadow-2xs hover:border-[#d97c55] hover:text-[#d97c55] transition-all"
+              title="Export Current List to CSV"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCsvInitialTab("import");
+                setIsCsvModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-[#111827] hover:bg-[#1f2937] text-white font-bold px-3.5 py-2 rounded-lg text-xs shadow-sm hover:shadow transition-all"
+              title="Bulk Import Players or Coaches via CSV"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#d97c55]" />
+              <span>Import CSV</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter Toolbar & Search */}
@@ -502,16 +555,16 @@ export default function PendingReviewsTable() {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[950px] text-left">
+        <table className="w-full text-left">
           <thead className="bg-[#111827] text-white">
             <tr>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400">REFERENCE</th>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400">APPLICANT</th>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400">CATEGORY</th>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400">DISTRICT</th>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400">STATUS</th>
-              <th className="py-4 px-6 text-[9px] font-bold tracking-widest uppercase text-gray-400 text-right">
-                ACTIONS
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400">REFERENCE</th>
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400">APPLICANT</th>
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400">CATEGORY</th>
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400">DISTRICT</th>
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400">STATUS</th>
+              <th className="py-3.5 px-4 text-[9px] font-bold tracking-widest uppercase text-gray-400 text-right w-16">
+                ACTION
               </th>
             </tr>
           </thead>
@@ -537,6 +590,7 @@ export default function PendingReviewsTable() {
               paginatedApplicants.map((a) => {
                 const key = rowKey(a);
                 const isExpanded = expandedId === key;
+                const isMenuOpen = openMenuKey === key;
                 const initials = getName(a)
                   .split(" ")
                   .map((p) => p[0])
@@ -569,17 +623,17 @@ export default function PendingReviewsTable() {
                       }`}
                     >
                       {/* 1. Reference */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <div className="font-bold text-xs tracking-wider text-[#111827] font-mono">
                           {getReference(a)}
                         </div>
                       </td>
 
                       {/* 2. Applicant Photo & Name */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           {photoUrl ? (
-                            <div className="w-10 h-10 rounded-md overflow-hidden border border-gray-200 shrink-0 shadow-xs bg-gray-50">
+                            <div className="w-9 h-9 rounded-md overflow-hidden border border-gray-200 shrink-0 shadow-xs bg-gray-50">
                               <img
                                 src={photoUrl}
                                 alt={getName(a)}
@@ -588,7 +642,7 @@ export default function PendingReviewsTable() {
                             </div>
                           ) : (
                             <div
-                              className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 shadow-xs ${
+                              className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 shadow-xs ${
                                 a.type === "coach"
                                   ? "bg-[#d97c55] text-white"
                                   : a.type === "academy"
@@ -605,9 +659,11 @@ export default function PendingReviewsTable() {
                               </span>
                             </div>
                           )}
-                          <div>
-                            <div className="font-bold text-sm text-[#111827]">{getName(a)}</div>
-                            <div className="text-[10px] text-gray-500 font-mono mt-0.5 lowercase">
+                          <div className="min-w-0 max-w-[180px] sm:max-w-[220px]">
+                            <div className="font-bold text-xs sm:text-sm text-[#111827] truncate">
+                              {getName(a)}
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono truncate lowercase">
                               {getEmail(a)}
                             </div>
                           </div>
@@ -615,68 +671,99 @@ export default function PendingReviewsTable() {
                       </td>
 
                       {/* 3. Category Type */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span
-                          className={`border px-2.5 py-1 rounded text-[10px] font-bold tracking-widest uppercase ${typeColor}`}
+                          className={`border px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase ${typeColor}`}
                         >
                           {a.type}
                         </span>
                       </td>
 
                       {/* 4. District */}
-                      <td className="py-4 px-6 text-sm text-gray-600 font-medium">
+                      <td className="py-3 px-4 text-xs font-semibold text-gray-700">
                         {getDistrict(a) || "—"}
                       </td>
 
                       {/* 5. Status Badge */}
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         {paid ? (
-                          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-sm text-[9px] font-bold tracking-widest uppercase inline-flex items-center gap-1.5">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-sm text-[9px] font-bold tracking-wider uppercase inline-flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
                             APPROVED
                           </div>
                         ) : (
-                          <div className="bg-amber-50 border border-amber-200 text-amber-700 px-2.5 py-1 rounded-sm text-[9px] font-bold tracking-widest uppercase inline-flex items-center gap-1.5">
+                          <div className="bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-sm text-[9px] font-bold tracking-wider uppercase inline-flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             PENDING
                           </div>
                         )}
                       </td>
 
-                      {/* 6. Action: Edit, Review & Delete Buttons */}
-                      <td className="py-4 px-6 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          {/* EDIT BUTTON */}
+                      {/* 6. Action: Three Dots Action Dropdown Menu */}
+                      <td className="py-3 px-4 text-right relative action-menu-dropdown-wrapper">
+                        <div className="relative inline-block text-left">
                           <button
                             type="button"
-                            onClick={() => setEditingApplicant(a)}
-                            className="bg-gray-100 hover:bg-[#d97c55] text-gray-700 hover:text-white px-3 py-1.5 rounded text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1 shadow-xs"
-                            title="Edit applicant information & status"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuKey(isMenuOpen ? null : key);
+                            }}
+                            className={`p-1.5 rounded-md border transition-all ${
+                              isMenuOpen || isExpanded
+                                ? "bg-[#111827] text-white border-[#111827] shadow-xs"
+                                : "bg-white text-gray-600 border-gray-200 hover:text-[#111827] hover:bg-gray-100 hover:border-gray-300"
+                            }`}
+                            title="Actions Menu"
                           >
-                            <Edit3 className="w-3 h-3" />
-                            <span>EDIT</span>
+                            <MoreVertical className="w-4 h-4" />
                           </button>
 
-                          {/* REVIEW / EXPAND BUTTON */}
-                          <button
-                            type="button"
-                            onClick={() => setExpandedId(isExpanded ? null : key)}
-                            className="bg-[#111827] hover:bg-[#1f2937] text-white px-3 py-1.5 rounded text-[10px] font-bold tracking-widest uppercase shadow-xs transition-colors"
-                          >
-                            {isExpanded ? "CLOSE" : "REVIEW"}
-                          </button>
+                          {/* Floating Dropdown */}
+                          {isMenuOpen && (
+                            <div
+                              className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-200 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExpandedId(isExpanded ? null : key);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-primary flex items-center gap-2.5 transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-[#d97c55]" />
+                                <span>{isExpanded ? "Close Review" : "Review Details"}</span>
+                              </button>
 
-                          {/* DELETE BUTTON */}
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(a)}
-                            disabled={deletingId === key}
-                            className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 px-2.5 py-1.5 rounded text-[10px] font-bold tracking-wider uppercase transition-colors flex items-center gap-1 shadow-xs disabled:opacity-50"
-                            title={`Delete ${getName(a)}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span>{deletingId === key ? "..." : "DELETE"}</span>
-                          </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingApplicant(a);
+                                  setOpenMenuKey(null);
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-primary flex items-center gap-2.5 transition-colors"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Edit Details</span>
+                              </button>
+
+                              <div className="my-1 border-t border-gray-100" />
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuKey(null);
+                                  handleDelete(a);
+                                }}
+                                disabled={deletingId === key}
+                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors disabled:opacity-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                <span>{deletingId === key ? "Deleting..." : "Delete Registration"}</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -809,6 +896,18 @@ export default function PendingReviewsTable() {
         />
       )}
 
+      {/* CSV IMPORT / EXPORT MODAL */}
+      <CsvImportExportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        currentApplicants={filteredApplicants}
+        onImportSuccess={() => {
+          fetchData();
+          setToast("CSV imported successfully!");
+          setTimeout(() => setToast(null), 4000);
+        }}
+        initialTab={csvInitialTab}
+      />
     </div>
   );
 }

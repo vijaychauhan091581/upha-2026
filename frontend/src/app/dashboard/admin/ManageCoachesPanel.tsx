@@ -19,7 +19,9 @@ import {
   Mail,
   Phone,
   Calendar,
-  User
+  User,
+  Download,
+  Upload,
 } from "lucide-react";
 import {
   listCoaches,
@@ -30,6 +32,7 @@ import {
   removeRegistrationPhoto
 } from "@/lib/api";
 import DistrictCombobox from "@/components/DistrictCombobox";
+import CsvImportExportModal from "./CsvImportExportModal";
 
 export default function ManageCoachesPanel({ onClose }: { onClose?: () => void }) {
   const [coaches, setCoaches] = useState<CoachData[]>([]);
@@ -56,6 +59,10 @@ export default function ManageCoachesPanel({ onClose }: { onClose?: () => void }
 
   // Action loaders
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  // CSV Import / Export
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvInitialTab, setCsvInitialTab] = useState<"export" | "import">("export");
 
   const fetchCoachesList = async () => {
     try {
@@ -277,7 +284,31 @@ export default function ManageCoachesPanel({ onClose }: { onClose?: () => void }
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCsvInitialTab("export");
+              setIsCsvModalOpen(true);
+            }}
+            className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 shadow-2xs hover:border-[#d97c55] hover:text-[#d97c55]"
+            title="Export Coaches to CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setCsvInitialTab("import");
+              setIsCsvModalOpen(true);
+            }}
+            className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 py-2 rounded text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 shadow-2xs hover:border-[#d97c55] hover:text-[#d97c55]"
+            title="Import Coaches from CSV"
+          >
+            <Upload className="w-3.5 h-3.5 text-[#d97c55]" />
+            <span>Import CSV</span>
+          </button>
           {!isAdding ? (
             <button
               type="button"
@@ -732,6 +763,18 @@ export default function ManageCoachesPanel({ onClose }: { onClose?: () => void }
           </div>
         </div>
       )}
+
+      {/* CSV Import / Export Modal */}
+      <CsvImportExportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        currentApplicants={(coaches || []).map((c) => ({ type: "coach", data: c }))}
+        onImportSuccess={() => {
+          fetchCoachesList();
+          showToast("Coaches CSV imported successfully!");
+        }}
+        initialTab={csvInitialTab}
+      />
     </div>
   );
 }

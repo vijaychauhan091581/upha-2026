@@ -15,13 +15,23 @@ class AuthController {
         return res.status(400).json({ success: false, message: 'Email and password are required.' });
       }
 
-      const user = UserModel.findByEmail(email) || UserModel.findByUsername(email);
-      if (!user) {
-        return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      const users = UserModel.findAllByEmail(email);
+      let user = null;
+      for (const u of users) {
+        if (verifyPassword(password, u.password)) {
+          user = u;
+          break;
+        }
       }
 
-      const isValid = verifyPassword(password, user.password);
-      if (!isValid) {
+      if (!user) {
+        const byUsername = UserModel.findByUsername(email);
+        if (byUsername && verifyPassword(password, byUsername.password)) {
+          user = byUsername;
+        }
+      }
+
+      if (!user) {
         return res.status(401).json({ success: false, message: 'Invalid email or password.' });
       }
 

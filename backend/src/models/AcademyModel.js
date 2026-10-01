@@ -12,8 +12,8 @@ class AcademyModel {
   }
 
   static findFacilityPhotos(academyId, req) {
-    const photos = db.prepare('SELECT photo FROM academy_academyfacilityphoto WHERE academy_id = ?').all(academyId);
-    return photos.map((p) => buildMediaUrl(req, p.photo));
+    const photos = db.prepare('SELECT image FROM academy_academyfacilityphoto WHERE academy_id = ?').all(academyId);
+    return photos.map((p) => buildMediaUrl(req, p.image));
   }
 
   static findAll({ paid, district } = {}, req) {
@@ -47,7 +47,7 @@ class AcademyModel {
       'coach_mobile', 'coach_email', 'coach_upha_id', 'coach_experience',
       'registration_certificate', 'transaction_id', 'transaction_image', 'paid',
       'director_id', 'user_id', 'academy_type', 'address_proof', 'bank_details',
-      'categories_trained', 'coach_grade', 'coach_photo', 'discipline_focus',
+      'categories_trained', 'coach_grade', 'discipline_focus',
       'pin_code', 'training_venue', 'trust_registration_number', 'coaches_employed'
     ];
 
@@ -68,7 +68,7 @@ class AcademyModel {
     const academyId = info.lastInsertRowid;
 
     if (Array.isArray(data.facility_photos)) {
-      const photoStmt = db.prepare('INSERT INTO academy_academyfacilityphoto (photo, academy_id) VALUES (?, ?)');
+      const photoStmt = db.prepare('INSERT INTO academy_academyfacilityphoto (image, academy_id) VALUES (?, ?)');
       for (const p of data.facility_photos) {
         if (p) photoStmt.run(p, academyId);
       }

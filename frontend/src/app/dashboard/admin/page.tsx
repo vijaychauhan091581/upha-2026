@@ -18,6 +18,7 @@ import IssueCertificatesPanel from "./IssueCertificatesPanel";
 import ManageAGMLetters from "./ManageAGMLetters";
 import ManageFormsPanel from "./ManageFormsPanel";
 import ManageCoachesPanel from "./ManageCoachesPanel";
+import ManageEnquiriesPanel from "./ManageEnquiriesPanel";
 
 import { createEvent, CreateEventPayload, getAdminStats, AdminStatsData } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -276,6 +277,7 @@ export default function AdminDashboardPage() {
                   {activeTab === "manage_coaches" && (
                     <ManageCoachesPanel onClose={() => setActiveTab("dashboard")} />
                   )}
+                  {activeTab === "enquiries" && <ManageEnquiriesPanel />}
                 </div>
               </div>
             )}

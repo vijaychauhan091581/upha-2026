@@ -6,22 +6,12 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
 const { createUploader } = require('../middleware/uploadMiddleware');
 
-const certUpload = createUploader('certificates').single('certificate');
-const obUpload = createUploader('office_bearers').single('image');
-const formUpload = createUploader('forms').single('file');
-const agmUpload = createUploader('agm').single('file');
-const settingsUpload = createUploader('settings').fields([
-  { name: 'payment_qr_code', maxCount: 1 },
-  { name: 'hai_affiliation_letter', maxCount: 1 },
-  { name: 'up_olympic_letter', maxCount: 1 },
-]);
-
-const memberUpload = createUploader('members').fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'photo', maxCount: 1 },
-  { name: 'passport_image', maxCount: 1 },
-  { name: 'logo', maxCount: 1 },
-]);
+const certUpload = createUploader('certificates').any();
+const obUpload = createUploader('office_bearers').any();
+const formUpload = createUploader('forms').any();
+const agmUpload = createUploader('agm').any();
+const settingsUpload = createUploader('settings').any();
+const memberUpload = createUploader('members').any();
 
 // Protect all admin routes
 router.use(authenticate(true), requireAdmin);
@@ -52,6 +42,16 @@ router.all(['/admin/office-bearers', '/admin/office-bearers/'], obUpload, AdminC
 router.post(['/admin/announcements/create', '/admin/announcements/create/'], AdminController.createAnnouncement);
 router.put(['/admin/announcements/:id', '/admin/announcements/:id/'], AdminController.updateAnnouncement);
 router.delete(['/admin/announcements/:id', '/admin/announcements/:id/'], AdminController.deleteAnnouncement);
+
+// Enquiries / Contact Messages
+router.get(['/admin/enquiries', '/admin/enquiries/'], AdminController.listEnquiries);
+router.patch(['/admin/enquiries/:id', '/admin/enquiries/:id/'], AdminController.updateEnquiryStatus);
+router.post(['/admin/enquiries/:id/status', '/admin/enquiries/:id/status/'], AdminController.updateEnquiryStatus);
+router.delete(['/admin/enquiries/:id', '/admin/enquiries/:id/'], AdminController.deleteEnquiry);
+
+// Bulk Import
+router.post(['/admin/import/players', '/admin/import/players/'], AdminController.importPlayers);
+router.post(['/admin/import/coaches', '/admin/import/coaches/'], AdminController.importCoaches);
 
 // AGM Letters & Forms
 router.post(['/admin/agm-letters', '/admin/agm-letters/'], agmUpload, AdminController.createAgmLetter);

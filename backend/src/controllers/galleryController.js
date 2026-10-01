@@ -1,10 +1,11 @@
 const path = require('path');
 const db = require('../config/database');
+const { MEDIA_ROOT } = require('../config/constants');
 const GalleryModel = require('../models/GalleryModel');
 
 function getRelativePath(file) {
-  if (!file) return null;
-  return path.relative(path.resolve(__dirname, '../../../backend/media'), file.path).replace(/\\/g, '/');
+  if (!file || !file.path) return null;
+  return path.relative(MEDIA_ROOT, file.path).replace(/\\/g, '/');
 }
 
 class GalleryController {

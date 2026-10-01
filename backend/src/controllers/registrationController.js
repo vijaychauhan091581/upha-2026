@@ -15,18 +15,29 @@ function getRelativePath(file) {
   return path.relative(MEDIA_ROOT, file.path).replace(/\\/g, '/');
 }
 
+function getFilesMap(req) {
+  const map = {};
+  if (Array.isArray(req.files)) {
+    for (const f of req.files) {
+      if (!map[f.fieldname]) map[f.fieldname] = [];
+      map[f.fieldname].push(f);
+    }
+  } else if (req.files && typeof req.files === 'object') {
+    for (const [k, v] of Object.entries(req.files)) {
+      map[k] = Array.isArray(v) ? v : [v];
+    }
+  }
+  return map;
+}
+
 class RegistrationController {
   static async registerPlayer(req, res) {
     try {
       const b = req.body;
-      const files = req.files || {};
+      const files = getFilesMap(req);
 
       if (!b.email || !b.password || !b.name) {
         return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
-      }
-
-      if (UserModel.findByEmail(b.email)) {
-        return res.status(400).json({ success: false, message: 'Email already registered.' });
       }
 
       const adhar_image = (files.adhar_image || files.aadhar_image || files.adhar_card || files.aadhar_card_scan)
@@ -41,8 +52,8 @@ class RegistrationController {
       const adhar_number = (b.adhar_number || b.aadhar_number || b.adhar || b.aadhar || '').trim();
 
       const user = UserModel.create({
-        username: b.email,
-        email: b.email,
+        username: b.username || `${b.email.trim()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        email: b.email.trim(),
         password: hashPassword(b.password),
         name: b.name,
         role: 'player',
@@ -66,7 +77,7 @@ class RegistrationController {
         coach_name: b.coach_name || '',
         height: b.height || 0,
         weight: b.weight || 0,
-        transaction_id: b.transaction_id || `TXN_${Date.now()}`,
+        transaction_id: b.transaction_id || `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         transaction_image: transaction_image || '',
         paid: 0,
         certificate_image,
@@ -87,23 +98,24 @@ class RegistrationController {
   static async registerCoach(req, res) {
     try {
       const b = req.body;
-      const files = req.files || {};
+      const files = getFilesMap(req);
 
       if (!b.email || !b.password || !b.name) {
         return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
       }
 
-      if (UserModel.findByEmail(b.email)) {
-        return res.status(400).json({ success: false, message: 'Email already registered.' });
-      }
-
-      const adhar_image = files.adhar_image ? getRelativePath(files.adhar_image[0]) : null;
-      const passport_image = files.passport_image ? getRelativePath(files.passport_image[0]) : null;
+      const adhar_image = (files.adhar_image || files.aadhar_image || files.adhar_card)
+        ? getRelativePath((files.adhar_image || files.aadhar_image || files.adhar_card)[0])
+        : null;
+      const passport_image = (files.passport_image || files.passport_photo || files.photo)
+        ? getRelativePath((files.passport_image || files.passport_photo || files.photo)[0])
+        : null;
       const transaction_image = files.transaction_image ? getRelativePath(files.transaction_image[0]) : (b.transaction_image || '');
+      const certificate_image = files.certificate_image ? getRelativePath(files.certificate_image[0]) : null;
 
       const user = UserModel.create({
-        username: b.email,
-        email: b.email,
+        username: b.username || `${b.email.trim()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        email: b.email.trim(),
         password: hashPassword(b.password),
         name: b.name,
         role: 'coach',
@@ -123,9 +135,10 @@ class RegistrationController {
         district: b.district || '',
         occupation: b.occupation || '',
         highest_coaching_grade: b.highest_coaching_grade || '',
-        transaction_id: b.transaction_id || `TXN_${Date.now()}`,
+        transaction_id: b.transaction_id || `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         transaction_image: transaction_image || '',
         paid: 0,
+        certificate_image,
       });
 
       const formatted = CoachModel.formatCoach(coach, user, req);
@@ -143,23 +156,24 @@ class RegistrationController {
   static async registerReferee(req, res) {
     try {
       const b = req.body;
-      const files = req.files || {};
+      const files = getFilesMap(req);
 
       if (!b.email || !b.password || !b.name) {
         return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
       }
 
-      if (UserModel.findByEmail(b.email)) {
-        return res.status(400).json({ success: false, message: 'Email already registered.' });
-      }
-
-      const adhar_image = files.adhar_image ? getRelativePath(files.adhar_image[0]) : null;
-      const passport_image = files.passport_image ? getRelativePath(files.passport_image[0]) : null;
+      const adhar_image = (files.adhar_image || files.aadhar_image || files.adhar_card)
+        ? getRelativePath((files.adhar_image || files.aadhar_image || files.adhar_card)[0])
+        : null;
+      const passport_image = (files.passport_image || files.passport_photo || files.photo)
+        ? getRelativePath((files.passport_image || files.passport_photo || files.photo)[0])
+        : null;
       const transaction_image = files.transaction_image ? getRelativePath(files.transaction_image[0]) : (b.transaction_image || '');
+      const certificate_image = files.certificate_image ? getRelativePath(files.certificate_image[0]) : null;
 
       const user = UserModel.create({
-        username: b.email,
-        email: b.email,
+        username: b.username || `${b.email.trim()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        email: b.email.trim(),
         password: hashPassword(b.password),
         name: b.name,
         role: 'referee',
@@ -182,10 +196,11 @@ class RegistrationController {
         year_of_officiating_experience: b.year_of_officiating_experience || 0,
         highest_level_officiated: b.highest_level_officiated || '',
         tournament_officiated: b.tournament_officiated || '',
-        previous_referee_id: b.previous_referee_id || `REF_${Date.now()}`,
-        transaction_id: b.transaction_id || `TXN_${Date.now()}`,
+        previous_referee_id: b.previous_referee_id || `REF_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        transaction_id: b.transaction_id || `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         transaction_image: transaction_image || '',
         paid: 0,
+        certificate_image,
       });
 
       const formatted = RefereeModel.formatReferee(referee, user, req);
@@ -203,23 +218,20 @@ class RegistrationController {
   static async registerAcademy(req, res) {
     try {
       const b = req.body;
-      const files = req.files || {};
+      const files = getFilesMap(req);
 
       if (!b.email || !b.name) {
         return res.status(400).json({ success: false, message: 'Academy name and email are required.' });
       }
 
-      let user = UserModel.findByEmail(b.email);
-      if (!user) {
-        user = UserModel.create({
-          username: b.email,
-          email: b.email,
-          password: hashPassword(b.password || 'Academy@1234'),
-          name: b.director_name || b.name,
-          role: 'academy',
-          phone_number: b.office_phone_number || '',
-        });
-      }
+      const user = UserModel.create({
+        username: b.username || `${b.email.trim()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        email: b.email.trim(),
+        password: hashPassword(b.password || 'Academy@1234'),
+        name: b.director_name || b.name,
+        role: 'academy',
+        phone_number: b.office_phone_number || '',
+      });
 
       const logo = files.logo ? getRelativePath(files.logo[0]) : null;
       const registration_certificate = files.registration_certificate ? getRelativePath(files.registration_certificate[0]) : null;
@@ -255,6 +267,7 @@ class RegistrationController {
       return res.status(500).json({ success: false, message: err.message || 'Academy registration failed.' });
     }
   }
+
 
   static async registerDistrict(req, res) {
     try {

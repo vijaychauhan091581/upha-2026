@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
 const { createUploader } = require('../middleware/uploadMiddleware');
 
-const albumUpload = createUploader('gallery').array('photos', 20);
+const albumUpload = createUploader('gallery').any();
 
 // Public Gallery Routes
 router.get(['/gallery/albums', '/gallery/albums/'], GalleryController.listAlbums);

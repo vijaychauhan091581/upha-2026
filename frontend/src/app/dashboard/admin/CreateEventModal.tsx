@@ -34,6 +34,7 @@ export const EVENT_CATEGORIES = [
   "Federation / National Championship",
   "Senior",
   "Junior",
+  "Sub-Junior",
   "Youth",
   "U17",
   "U15",

@@ -8,12 +8,17 @@ class UserModel {
 
   static findByEmail(email) {
     if (!email) return null;
-    return db.prepare('SELECT * FROM users_user WHERE LOWER(email) = LOWER(?)').get(email.trim());
+    return db.prepare('SELECT * FROM users_user WHERE LOWER(email) = LOWER(?) ORDER BY id DESC').get(email.trim());
+  }
+
+  static findAllByEmail(email) {
+    if (!email) return [];
+    return db.prepare('SELECT * FROM users_user WHERE LOWER(email) = LOWER(?) ORDER BY id DESC').all(email.trim());
   }
 
   static findByUsername(username) {
     if (!username) return null;
-    return db.prepare('SELECT * FROM users_user WHERE LOWER(username) = LOWER(?)').get(username.trim());
+    return db.prepare('SELECT * FROM users_user WHERE LOWER(username) = LOWER(?) ORDER BY id DESC').get(username.trim());
   }
 
   static create({
@@ -38,6 +43,8 @@ class UserModel {
   }) {
     const now = new Date().toISOString();
     const safeAdhar = (adhar_number && String(adhar_number).trim() !== '') ? String(adhar_number).trim() : null;
+    const finalUsername = username ? username.trim() : `${(email || 'user').trim()}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
     const stmt = db.prepare(`
       INSERT INTO users_user (
         username, email, password, name, first_name, last_name, role,
@@ -53,8 +60,8 @@ class UserModel {
     `);
 
     const info = stmt.run({
-      username,
-      email,
+      username: finalUsername,
+      email: (email || '').trim(),
       password,
       name,
       role,

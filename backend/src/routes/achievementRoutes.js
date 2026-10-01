@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
 const { createUploader } = require('../middleware/uploadMiddleware');
 
-const achievementUpload = createUploader('achievements').single('image');
+const achievementUpload = createUploader('achievements').any();
 
 // Public Achievements
 router.get(['/achievements', '/achievements/'], AchievementController.listAchievements);

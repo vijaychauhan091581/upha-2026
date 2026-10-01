@@ -1,10 +1,6 @@
-const path = require('path');
+const { MEDIA_ROOT } = require('../config/constants');
 const SettingsModel = require('../models/SettingsModel');
-
-function getRelativePath(file) {
-  if (!file) return null;
-  return path.relative(path.resolve(__dirname, '../../../backend/media'), file.path).replace(/\\/g, '/');
-}
+const { getFilesMap, getRelativePath } = require('../middleware/uploadMiddleware');
 
 class SettingsController {
   static async getSettings(req, res) {
@@ -24,17 +20,17 @@ class SettingsController {
   static async updateSettings(req, res) {
     try {
       const b = req.body;
-      const files = req.files || {};
+      const files = getFilesMap(req);
 
       const data = { ...b };
 
-      if (files.payment_qr_code) {
+      if (files.payment_qr_code && files.payment_qr_code[0]) {
         data.payment_qr_code = getRelativePath(files.payment_qr_code[0]);
       }
-      if (files.hai_affiliation_letter) {
+      if (files.hai_affiliation_letter && files.hai_affiliation_letter[0]) {
         data.hai_affiliation_letter = getRelativePath(files.hai_affiliation_letter[0]);
       }
-      if (files.up_olympic_letter) {
+      if (files.up_olympic_letter && files.up_olympic_letter[0]) {
         data.up_olympic_letter = getRelativePath(files.up_olympic_letter[0]);
       }
 

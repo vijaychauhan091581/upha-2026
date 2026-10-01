@@ -11,12 +11,9 @@ const NotificationModel = require('../models/NotificationModel');
 const CertificateModel = require('../models/CertificateModel');
 const OfficeBearerModel = require('../models/OfficeBearerModel');
 const FormsLettersModel = require('../models/FormsLettersModel');
+const { MEDIA_ROOT } = require('../config/constants');
 const { buildMediaUrl } = require('../utils/mediaUtils');
-
-function getRelativePath(file) {
-  if (!file) return null;
-  return path.relative(path.resolve(__dirname, '../../../backend/media'), file.path).replace(/\\/g, '/');
-}
+const { getFirstFile, getFilesMap, getRelativePath } = require('../middleware/uploadMiddleware');
 
 function normalizeType(type) {
   if (!type) return '';
@@ -74,6 +71,14 @@ class AdminController {
         scheduledNotices = db.prepare('SELECT count(*) as c FROM users_announcement').get().c;
       } catch (e) {}
 
+      // Enquiries
+      let pendingEnquiries = 0;
+      let totalEnquiries = 0;
+      try {
+        pendingEnquiries = db.prepare("SELECT count(*) as c FROM contact_messages WHERE status = 'pending'").get().c;
+        totalEnquiries = db.prepare('SELECT count(*) as c FROM contact_messages').get().c;
+      } catch (e) {}
+
       // Recent decision log stats
       const todayIso = new Date().toISOString().slice(0, 10);
       let approvedToday = 0;
@@ -101,6 +106,8 @@ class AdminController {
           pending_referees: pendingReferees,
           pending_academies: pendingAcademies,
           pending_districts: pendingDistricts,
+          pending_enquiries: pendingEnquiries,
+          total_enquiries: totalEnquiries,
           total_players: totalPlayers,
           total_coaches: totalCoaches,
           total_referees: totalReferees,
@@ -331,7 +338,7 @@ class AdminController {
   static async uploadPlayerCertificate(req, res) {
     try {
       const playerId = req.params.player_id;
-      const file = req.file;
+      const file = getFirstFile(req, 'certificate', 'file', 'image');
       if (!file) {
         return res.status(400).json({ success: false, message: 'No certificate file uploaded.' });
       }
@@ -366,13 +373,13 @@ class AdminController {
       const method = req.method;
       if (method === 'POST') {
         const { name, role, order, term } = req.body;
-        const file = req.file;
+        const file = getFirstFile(req, 'image', 'photo', 'file');
         const image = file ? getRelativePath(file) : null;
         const ob = OfficeBearerModel.create({ name, role, image, order, term });
         return res.status(201).json({ success: true, message: 'Office bearer added.', office_bearer: ob });
       } else if (method === 'PUT' || method === 'PATCH') {
         const { id, name, role, order, term } = req.body;
-        const file = req.file;
+        const file = getFirstFile(req, 'image', 'photo', 'file');
         const image = file ? getRelativePath(file) : undefined;
         const ob = OfficeBearerModel.update(id, { name, role, image, order, term });
         return res.json({ success: true, message: 'Office bearer updated.', office_bearer: ob });
@@ -444,7 +451,8 @@ class AdminController {
   static async createAgmLetter(req, res) {
     try {
       const { title, description, letter_date, letter_type } = req.body;
-      const file = req.file ? getRelativePath(req.file) : null;
+      const fileObj = getFirstFile(req, 'file', 'letter', 'document');
+      const file = fileObj ? getRelativePath(fileObj) : null;
       const adminId = req.user ? req.user.id : null;
       const letter = FormsLettersModel.createAgmLetter({
         title,
@@ -475,7 +483,8 @@ class AdminController {
   static async createUphaForm(req, res) {
     try {
       const { title } = req.body;
-      const file = req.file ? getRelativePath(req.file) : null;
+      const fileObj = getFirstFile(req, 'file', 'form', 'document');
+      const file = fileObj ? getRelativePath(fileObj) : null;
       if (!file) {
         return res.status(400).json({ success: false, message: 'Form PDF or document required.' });
       }
@@ -503,8 +512,7 @@ class AdminController {
       const { type, id } = req.params;
       const normType = normalizeType(type);
       const b = req.body;
-      const files = req.files || {};
-      const file = (files.image || files.photo || files.passport_image || files.logo)?.[0] || req.file;
+      const file = getFirstFile(req, 'image', 'photo', 'passport_image', 'logo', 'file');
       const imagePath = file ? getRelativePath(file) : null;
 
       if (normType === 'players') {
@@ -873,27 +881,12 @@ class AdminController {
         return res.status(400).json({ success: false, message: 'Name and district are required.' });
       }
 
-      let imagePath = null;
-      if (req.files) {
-        const file = req.files.passport_image?.[0] || req.files.photo?.[0] || req.files.image?.[0];
-        if (file) {
-          imagePath = `members/${file.filename}`;
-        }
-      }
+      const imgFile = getFirstFile(req, 'passport_image', 'photo', 'image', 'file');
+      const imagePath = imgFile ? getRelativePath(imgFile) : null;
 
       const timestamp = Date.now();
       const username = `coach_${timestamp}_${Math.floor(Math.random() * 1000)}`;
       const coachEmail = (email && email.trim()) ? email.trim() : `${username}@upha.org`;
-
-      if (email && email.trim()) {
-        const existingUser = UserModel.findByEmail(email.trim());
-        if (existingUser) {
-          return res.status(400).json({
-            success: false,
-            message: `Email "${email.trim()}" pehle se kisi doosre account ke saath registered hai.`
-          });
-        }
-      }
 
       const contactPhone = (phone || phone_number || mobile || '').trim();
       const coachGender = (gender || '').trim();
@@ -939,13 +932,8 @@ class AdminController {
         return res.status(400).json({ success: false, message: 'Name and district are required.' });
       }
 
-      let imagePath = null;
-      if (req.files) {
-        const file = req.files.passport_image?.[0] || req.files.photo?.[0] || req.files.image?.[0];
-        if (file) {
-          imagePath = `members/${file.filename}`;
-        }
-      }
+      const imgFile = getFirstFile(req, 'passport_image', 'photo', 'image', 'file');
+      const imagePath = imgFile ? getRelativePath(imgFile) : null;
 
       const timestamp = Date.now();
       const username = `referee_${timestamp}_${Math.floor(Math.random() * 1000)}`;
@@ -979,6 +967,197 @@ class AdminController {
     } catch (err) {
       console.error('Admin create referee error:', err);
       return res.status(500).json({ success: false, message: 'Failed to create referee.' });
+    }
+  }
+
+  static async listEnquiries(req, res) {
+    try {
+      const { status, search } = req.query;
+      let query = 'SELECT * FROM contact_messages WHERE 1=1';
+      const params = [];
+      if (status && status !== 'all' && status !== 'ALL') {
+        query += ' AND LOWER(status) = LOWER(?)';
+        params.push(status);
+      }
+      if (search) {
+        query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR subject LIKE ? OR message LIKE ?)';
+        const s = `%${search}%`;
+        params.push(s, s, s, s, s);
+      }
+      query += ' ORDER BY id DESC';
+      const rows = db.prepare(query).all(...params);
+      const enquiries = rows.map((e) => ({
+        id: e.id,
+        reference_number: `UPHA-INQ-${String(e.id).padStart(5, '0')}`,
+        name: e.name,
+        email: e.email,
+        phone: e.phone || '',
+        category: e.category || 'general',
+        subject: e.subject || 'General Enquiry',
+        message: e.message,
+        status: e.status || 'pending',
+        created_at: e.created_at,
+      }));
+      return res.json({ success: true, enquiries });
+    } catch (err) {
+      console.error('List enquiries error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to retrieve enquiries.' });
+    }
+  }
+
+  static async updateEnquiryStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ success: false, message: 'Status is required.' });
+      }
+      db.prepare('UPDATE contact_messages SET status = ? WHERE id = ?').run(status, id);
+      const updated = db.prepare('SELECT * FROM contact_messages WHERE id = ?').get(id);
+      return res.json({
+        success: true,
+        message: 'Enquiry status updated successfully.',
+        enquiry: updated
+          ? {
+              ...updated,
+              reference_number: `UPHA-INQ-${String(updated.id).padStart(5, '0')}`,
+            }
+          : null,
+      });
+    } catch (err) {
+      console.error('Update enquiry error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to update enquiry status.' });
+    }
+  }
+
+  static async deleteEnquiry(req, res) {
+    try {
+      const { id } = req.params;
+      db.prepare('DELETE FROM contact_messages WHERE id = ?').run(id);
+      return res.json({ success: true, message: 'Enquiry deleted successfully.' });
+    } catch (err) {
+      console.error('Delete enquiry error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to delete enquiry.' });
+    }
+  }
+
+  static async importPlayers(req, res) {
+    try {
+      const { players } = req.body;
+      if (!Array.isArray(players) || players.length === 0) {
+        return res.status(400).json({ success: false, message: 'No players data provided.' });
+      }
+      let successCount = 0;
+      const errors = [];
+
+      for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        try {
+          if (!p.name || (!p.email && !p.phone_number && !p.phone)) {
+            errors.push(`Row ${i + 1}: Name and Email/Phone are required.`);
+            continue;
+          }
+          const emailVal = (p.email || `player_${Date.now()}_${i}@upha.org`).trim();
+          const user = UserModel.create({
+            name: p.name.trim(),
+            email: emailVal,
+            username: (p.username || `${emailVal}_${Date.now()}_${i}`).trim(),
+            password: hashPassword(p.password || 'Player@1234'),
+            phone_number: (p.phone_number || p.phone || '').trim(),
+            gender: (p.gender || 'Male').trim(),
+            father_name: (p.father_name || '').trim(),
+            mother_name: (p.mother_name || '').trim(),
+            blood_group: (p.blood_group || '').trim(),
+            date_of_birth: p.date_of_birth || null,
+            adhar_number: p.adhar_number || p.aadhar_number || null,
+            role: 'player',
+          });
+
+          PlayerModel.create({
+            user_id: user.id,
+            district: (p.district || '').trim(),
+            dominant_hand: (p.dominant_hand || 'right').trim(),
+            club_name: (p.club_name || '').trim(),
+            school_name: (p.school_name || '').trim(),
+            coach_name: (p.coach_name || '').trim(),
+            height: Number(p.height) || 0,
+            weight: Number(p.weight) || 0,
+            transaction_id: p.transaction_id || `IMPORT_${Date.now()}_${i}`,
+            paid: p.paid === '1' || p.paid === 'true' || p.paid === true || p.status?.toLowerCase() === 'approved' ? 1 : 0,
+          });
+          successCount++;
+        } catch (err) {
+          errors.push(`Row ${i + 1} (${p.name || 'Unknown'}): ${err.message}`);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: `Imported ${successCount} player(s) successfully.`,
+        imported_count: successCount,
+        errors,
+      });
+    } catch (err) {
+      console.error('Import players error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to import players.' });
+    }
+  }
+
+  static async importCoaches(req, res) {
+    try {
+      const { coaches } = req.body;
+      if (!Array.isArray(coaches) || coaches.length === 0) {
+        return res.status(400).json({ success: false, message: 'No coaches data provided.' });
+      }
+      let successCount = 0;
+      const errors = [];
+
+      for (let i = 0; i < coaches.length; i++) {
+        const c = coaches[i];
+        try {
+          if (!c.name || (!c.email && !c.phone_number && !c.phone)) {
+            errors.push(`Row ${i + 1}: Name and Email/Phone are required.`);
+            continue;
+          }
+          const emailVal = (c.email || `coach_${Date.now()}_${i}@upha.org`).trim();
+          const user = UserModel.create({
+            name: c.name.trim(),
+            email: emailVal,
+            username: (c.username || `${emailVal}_${Date.now()}_${i}`).trim(),
+            password: hashPassword(c.password || 'Coach@1234'),
+            phone_number: (c.phone_number || c.phone || '').trim(),
+            gender: (c.gender || 'Male').trim(),
+            father_name: (c.father_name || '').trim(),
+            mother_name: (c.mother_name || '').trim(),
+            blood_group: (c.blood_group || '').trim(),
+            date_of_birth: c.date_of_birth || null,
+            adhar_number: c.adhar_number || c.aadhar_number || null,
+            role: 'coach',
+          });
+
+          CoachModel.create({
+            user_id: user.id,
+            district: (c.district || '').trim(),
+            occupation: (c.occupation || 'Handball Coach').trim(),
+            highest_coaching_grade: (c.highest_coaching_grade || c.grade || 'Certified Coach').trim(),
+            transaction_id: c.transaction_id || `IMPORT_CCH_${Date.now()}_${i}`,
+            paid: c.paid === '1' || c.paid === 'true' || c.paid === true || c.status?.toLowerCase() === 'approved' ? 1 : 0,
+          });
+          successCount++;
+        } catch (err) {
+          errors.push(`Row ${i + 1} (${c.name || 'Unknown'}): ${err.message}`);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: `Imported ${successCount} coach(es) successfully.`,
+        imported_count: successCount,
+        errors,
+      });
+    } catch (err) {
+      console.error('Import coaches error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to import coaches.' });
     }
   }
 }

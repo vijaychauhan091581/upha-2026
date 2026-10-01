@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   ChevronRight,
   LayoutDashboard,
+  Mail,
 } from "lucide-react";
 import { AdminStatsData } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -88,6 +89,11 @@ export default function AdminSidebar({
           id: "manage_coaches",
           label: "Licensed Coaches",
           icon: Briefcase,
+        },
+        {
+          id: "enquiries",
+          label: "Contact Enquiries",
+          icon: Mail,
         },
       ],
     },

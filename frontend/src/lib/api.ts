@@ -162,6 +162,13 @@ export type MeData =
   | { type: "referee"; data: RefereeData }
   | { type: "academy"; data: AcademyData };
 
+export type Applicant =
+  | { type: "player"; data: PlayerData }
+  | { type: "coach"; data: CoachData }
+  | { type: "referee"; data: RefereeData }
+  | { type: "academy"; data: AcademyData }
+  | { type: "district"; data: DistrictData };
+
 // ΓöÇΓöÇΓöÇ Core Fetch Utility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 function getFriendlyErrorMessage(errorMsg: string): string {
@@ -600,6 +607,8 @@ export interface AdminStatsData {
   pending_coaches: number;
   pending_referees: number;
   pending_academies: number;
+  pending_enquiries?: number;
+  total_enquiries?: number;
   active_events: number;
   draft_events: number;
   results_awaiting: number;
@@ -1265,5 +1274,63 @@ export async function createUPHAForm(formData: FormData) {
 
 export async function deleteUPHAForm(id: number) {
   return apiFetch<{ success: boolean }>(`${ADMIN_BASE}/upha-forms/${id}/delete/`, { method: "DELETE" });
+}
+
+// ─── Contact Enquiries ─────────────────────────────────────────────────────────
+
+export interface EnquiryData {
+  id: number;
+  reference_number: string;
+  name: string;
+  email: string;
+  phone: string;
+  category: string;
+  subject: string;
+  message: string;
+  status: "pending" | "in_progress" | "resolved" | "replied";
+  created_at: string;
+}
+
+export async function listEnquiries(params?: { status?: string; search?: string }) {
+  const query = new URLSearchParams();
+  if (params?.status && params.status !== "all") query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+  const qStr = query.toString() ? `?${query.toString()}` : "";
+  return apiFetch<{ success: boolean; enquiries: EnquiryData[] }>(`${ADMIN_BASE}/enquiries/${qStr}`);
+}
+
+export async function updateEnquiryStatus(id: number, status: string) {
+  return apiFetch<{ success: boolean; message: string; enquiry: EnquiryData }>(`${ADMIN_BASE}/enquiries/${id}/status/`, {
+    method: "POST",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function deleteEnquiry(id: number) {
+  return apiFetch<{ success: boolean; message: string }>(`${ADMIN_BASE}/enquiries/${id}/`, {
+    method: "DELETE",
+  });
+}
+
+// ─── Bulk Import ───────────────────────────────────────────────────────────────
+
+export async function importPlayers(players: any[]) {
+  return apiFetch<{ success: boolean; message: string; imported_count: number; errors: string[] }>(
+    `${ADMIN_BASE}/import/players/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ players }),
+    }
+  );
+}
+
+export async function importCoaches(coaches: any[]) {
+  return apiFetch<{ success: boolean; message: string; imported_count: number; errors: string[] }>(
+    `${ADMIN_BASE}/import/coaches/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ coaches }),
+    }
+  );
 }
 

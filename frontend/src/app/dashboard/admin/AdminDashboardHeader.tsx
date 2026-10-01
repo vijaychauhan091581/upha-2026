@@ -8,6 +8,7 @@ import { Clock, CheckCircle2, Calendar, Image as ImageIcon } from "lucide-react"
 export type AdminTabType =
   | "dashboard"
   | "applications"
+  | "enquiries"
   | "create_event"
   | "upload_results"
   | "upload_gallery"
@@ -29,6 +30,10 @@ const TAB_TITLES: Record<AdminTabType, { title: string; subtitle: string }> = {
   applications: {
     title: "Approve Applications",
     subtitle: "Review and approve pending registrations for players, coaches, referees, academies, and districts.",
+  },
+  enquiries: {
+    title: "Contact Enquiries & Messages",
+    subtitle: "View, read, manage, and respond to visitor messages submitted via the Contact Us form.",
   },
   council_members: {
     title: "Council Members",

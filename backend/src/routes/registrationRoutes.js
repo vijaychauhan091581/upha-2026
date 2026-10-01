@@ -3,38 +3,10 @@ const router = express.Router();
 const RegistrationController = require('../controllers/registrationController');
 const { createUploader } = require('../middleware/uploadMiddleware');
 
-const playerUpload = createUploader('player_uploads').fields([
-  { name: 'adhar_image', maxCount: 1 },
-  { name: 'aadhar_image', maxCount: 1 },
-  { name: 'adhar_card', maxCount: 1 },
-  { name: 'aadhar_card_scan', maxCount: 1 },
-  { name: 'passport_image', maxCount: 1 },
-  { name: 'passport_photo', maxCount: 1 },
-  { name: 'photo', maxCount: 1 },
-  { name: 'transaction_image', maxCount: 1 },
-  { name: 'certificate_image', maxCount: 1 },
-]);
-
-const coachUpload = createUploader('coach_uploads').fields([
-  { name: 'adhar_image', maxCount: 1 },
-  { name: 'passport_image', maxCount: 1 },
-  { name: 'transaction_image', maxCount: 1 },
-]);
-
-const refereeUpload = createUploader('referee_uploads').fields([
-  { name: 'adhar_image', maxCount: 1 },
-  { name: 'passport_image', maxCount: 1 },
-  { name: 'transaction_image', maxCount: 1 },
-]);
-
-const academyUpload = createUploader('academy_uploads').fields([
-  { name: 'logo', maxCount: 1 },
-  { name: 'registration_certificate', maxCount: 1 },
-  { name: 'address_proof', maxCount: 1 },
-  { name: 'transaction_image', maxCount: 1 },
-  { name: 'facility_photos', maxCount: 10 },
-]);
-
+const playerUpload = createUploader('player_uploads').any();
+const coachUpload = createUploader('coach_uploads').any();
+const refereeUpload = createUploader('referee_uploads').any();
+const academyUpload = createUploader('academy_uploads').any();
 const districtUpload = createUploader('district_uploads').any();
 
 router.post(['/register/player', '/register/player/'], playerUpload, RegistrationController.registerPlayer);

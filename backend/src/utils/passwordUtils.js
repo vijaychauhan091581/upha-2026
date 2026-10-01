@@ -26,7 +26,7 @@ function verifyPassword(password, encoded) {
  */
 function hashPassword(password) {
   const salt = crypto.randomBytes(12).toString('base64');
-  const iterations = 720000; // Standard Django iterations
+  const iterations = 100000; // Optimized iterations for fast, non-blocking performance on VPS
   const hash = crypto
     .pbkdf2Sync(password, salt, iterations, 32, 'sha256')
     .toString('base64');

@@ -77,6 +77,7 @@ class RefereeModel {
     transaction_id = '',
     transaction_image = '',
     paid = 0,
+    certificate_image = null,
   }) {
     const safeTxId = transaction_id || `ADMIN-REF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const safePrevId = previous_referee_id || `REF-ID-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -86,11 +87,11 @@ class RefereeModel {
       INSERT INTO users_referee (
         district, occupation, grade_applying_for, year_of_officiating_experience,
         highest_level_officiated, tournament_officiated, previous_referee_id,
-        transaction_id, transaction_image, paid, user_id
+        transaction_id, transaction_image, paid, user_id, certificate_image
       ) VALUES (
         @district, @occupation, @grade_applying_for, @year_of_officiating_experience,
         @highest_level_officiated, @tournament_officiated, @previous_referee_id,
-        @transaction_id, @transaction_image, @paid, @user_id
+        @transaction_id, @transaction_image, @paid, @user_id, @certificate_image
       )
     `);
 
@@ -106,6 +107,7 @@ class RefereeModel {
       transaction_image: safeTxImg,
       paid: paid ? 1 : 0,
       user_id,
+      certificate_image,
     });
 
     return this.findById(info.lastInsertRowid);
@@ -129,6 +131,7 @@ class RefereeModel {
       previous_referee_id: referee.previous_referee_id,
       transaction_id: referee.transaction_id,
       transaction_image: buildMediaUrl(req, referee.transaction_image),
+      certificate_image: buildMediaUrl(req, referee.certificate_image),
       paid: Boolean(referee.paid),
       passport_image: safeUser?.passport_image || buildMediaUrl(req, user?.passport_image),
       adhar_number: safeUser?.adhar_number || user?.adhar_number || '',

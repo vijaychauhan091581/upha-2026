@@ -1,12 +1,9 @@
 const path = require('path');
 const db = require('../config/database');
+const { MEDIA_ROOT } = require('../config/constants');
 const EventModel = require('../models/EventModel');
 const CertificateModel = require('../models/CertificateModel');
-
-function getRelativePath(file) {
-  if (!file) return null;
-  return path.relative(path.resolve(__dirname, '../../../backend/media'), file.path).replace(/\\/g, '/');
-}
+const { getFirstFile, getRelativePath } = require('../middleware/uploadMiddleware');
 
 class EventController {
   static async listEvents(req, res) {
@@ -71,7 +68,8 @@ class EventController {
         return res.status(400).json({ success: false, message: 'Required event fields are missing.' });
       }
 
-      const imagePath = req.file ? getRelativePath(req.file) : null;
+      const imgFile = getFirstFile(req, 'image', 'photo', 'poster', 'cover');
+      const imagePath = imgFile ? getRelativePath(imgFile) : null;
 
       const event = EventModel.create({
         name,
@@ -103,7 +101,8 @@ class EventController {
         return res.status(400).json({ success: false, message: 'Required event fields are missing.' });
       }
 
-      const imagePath = req.file ? getRelativePath(req.file) : undefined;
+      const imgFile = getFirstFile(req, 'image', 'photo', 'poster', 'cover');
+      const imagePath = imgFile ? getRelativePath(imgFile) : undefined;
 
       const event = EventModel.update(event_id, {
         name,
@@ -169,7 +168,7 @@ class EventController {
     try {
       const { event_id } = req.params;
       const b = req.body;
-      const file = req.file;
+      const file = getFirstFile(req, 'scoresheet', 'file', 'results_file');
       const scoresheet = file ? getRelativePath(file) : null;
 
       let standings = [];

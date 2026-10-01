@@ -5,8 +5,8 @@ const { authenticate } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
 const { createUploader } = require('../middleware/uploadMiddleware');
 
-const scoresheetUpload = createUploader('scoresheets').single('scoresheet');
-const eventImageUpload = createUploader('events').single('image');
+const scoresheetUpload = createUploader('scoresheets').any();
+const eventImageUpload = createUploader('events').any();
 
 // Public Event Routes
 router.get(['/events', '/events/'], EventController.listEvents);
