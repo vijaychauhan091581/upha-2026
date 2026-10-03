@@ -318,10 +318,21 @@ class RegistrationController {
             adhar_image: adharImg,
             passport_image: passImg,
           });
-        } else if (b.adhyaksha_phone_number) {
-          db.prepare('UPDATE users_user SET phone_number = ?, name = COALESCE(?, name) WHERE id = ?').run(
-            b.adhyaksha_phone_number,
-            b.adhyaksha_name,
+        } else {
+          const adharImg = files.adhyaksha_adhar_image ? getRelativePath(files.adhyaksha_adhar_image[0]) : null;
+          const passImg = files.adhyaksha_passport_image ? getRelativePath(files.adhyaksha_passport_image[0]) : null;
+          db.prepare(`
+            UPDATE users_user 
+            SET phone_number = COALESCE(?, phone_number),
+                name = COALESCE(?, name),
+                passport_image = COALESCE(?, passport_image),
+                adhar_image = COALESCE(?, adhar_image)
+            WHERE id = ?
+          `).run(
+            b.adhyaksha_phone_number || null,
+            b.adhyaksha_name || null,
+            passImg,
+            adharImg,
             adhyakshaUser.id
           );
         }
@@ -348,10 +359,21 @@ class RegistrationController {
             adhar_image: adharImg,
             passport_image: passImg,
           });
-        } else if (b.sachiv_phone_number) {
-          db.prepare('UPDATE users_user SET phone_number = ?, name = COALESCE(?, name) WHERE id = ?').run(
-            b.sachiv_phone_number,
-            b.sachiv_name,
+        } else {
+          const adharImg = files.sachiv_adhar_image ? getRelativePath(files.sachiv_adhar_image[0]) : null;
+          const passImg = files.sachiv_passport_image ? getRelativePath(files.sachiv_passport_image[0]) : null;
+          db.prepare(`
+            UPDATE users_user 
+            SET phone_number = COALESCE(?, phone_number),
+                name = COALESCE(?, name),
+                passport_image = COALESCE(?, passport_image),
+                adhar_image = COALESCE(?, adhar_image)
+            WHERE id = ?
+          `).run(
+            b.sachiv_phone_number || null,
+            b.sachiv_name || null,
+            passImg,
+            adharImg,
             sachivUser.id
           );
         }
@@ -378,10 +400,21 @@ class RegistrationController {
             adhar_image: adharImg,
             passport_image: passImg,
           });
-        } else if (b.koshadhyaksha_phone_number) {
-          db.prepare('UPDATE users_user SET phone_number = ?, name = COALESCE(?, name) WHERE id = ?').run(
-            b.koshadhyaksha_phone_number,
-            b.koshadhyaksha_name,
+        } else {
+          const adharImg = files.koshadhyaksha_adhar_image ? getRelativePath(files.koshadhyaksha_adhar_image[0]) : null;
+          const passImg = files.koshadhyaksha_passport_image ? getRelativePath(files.koshadhyaksha_passport_image[0]) : null;
+          db.prepare(`
+            UPDATE users_user 
+            SET phone_number = COALESCE(?, phone_number),
+                name = COALESCE(?, name),
+                passport_image = COALESCE(?, passport_image),
+                adhar_image = COALESCE(?, adhar_image)
+            WHERE id = ?
+          `).run(
+            b.koshadhyaksha_phone_number || null,
+            b.koshadhyaksha_name || null,
+            passImg,
+            adharImg,
             koshadhyakshaUser.id
           );
         }

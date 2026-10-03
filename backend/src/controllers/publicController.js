@@ -182,7 +182,7 @@ class PublicController {
       return res.json({
         success: true,
         total_districts: totalDistricts,
-        affiliated: affiliated > 0 ? affiliated : 75,
+        affiliated: affiliated,
         open: open,
         district_stats: rows,
       });

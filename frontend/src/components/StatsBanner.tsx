@@ -24,7 +24,7 @@ export default function StatsBanner() {
     {
       id: "referees",
       title: "ACCREDITED REFEREES",
-      count: stats?.referees ?? 15,
+      count: stats?.referees ?? 0,
       icon: Shield,
       href: "/database/referees",
       actionText: "View Database",
@@ -34,7 +34,7 @@ export default function StatsBanner() {
     {
       id: "players",
       title: "REGISTERED PLAYERS",
-      count: stats?.players ?? 150,
+      count: stats?.players ?? 0,
       icon: Users,
       href: "/database/players",
       actionText: "View Database",
@@ -64,7 +64,7 @@ export default function StatsBanner() {
     {
       id: "districts",
       title: "DISTRICT UNITS",
-      count: (stats?.districts && stats.districts > 0) ? stats.districts : 75,
+      count: stats?.districts ?? 0,
       icon: MapPin,
       href: "/districts",
       actionText: "View Database",
